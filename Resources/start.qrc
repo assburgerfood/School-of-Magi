@@ -1,0 +1,5 @@
+<RCC>
+  <qresource prefix="school">
+    <file>../Events/Pictures/Towns/City of Magi/city_of_magi.jpg</file>
+  </qresource>
+</RCC>
