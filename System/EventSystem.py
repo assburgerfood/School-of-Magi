@@ -25,7 +25,7 @@ class EventLoader:
     __text = ""
     __picture = None
 
-    def __init__(self, location="System/Locations", scarcity=2):
+    def __init__(self, location="System/Events", scarcity=2):
 
         self.__weight_list = {}
         self.__weight_sum = 0
@@ -76,7 +76,10 @@ class EventHandler:
         self.__scene = ''
 
     def set_random_event(self, location):
-        event_name = self.event_data.get_random_event(location)
+        try:
+            event_name = self.event_data.get_random_event(location)
+        except KeyError:
+            return False
         if event_name:
             self.__current_event = self.event_data.get_event(event_name)
             self.__scene_i = 1
@@ -95,7 +98,10 @@ class EventHandler:
 
     def get_event_image(self):
         try:
-            return self.__current_event[self.__scene]['tags']
+            if 'tags' in self.__current_event[self.__scene]:
+                return [self.__current_event[self.__scene]['tags'], self.__current_event[self.__scene]['pages']]
+            else:
+                return [self.__current_event[self.__scene]['picture']]
         except KeyError:
             return None
 
@@ -112,7 +118,9 @@ class EventHandler:
             return False
 
     def advance_text(self):
+        print("advancing text")
         if self.__text_i < len(self.__current_event[self.__scene]['text']) - 1:
+            print("advancing text2")
             self.__text_i += 1
             return True
         else:
@@ -122,6 +130,7 @@ class EventHandler:
         self.__text_i = 0
         if self.__scene_i < self.__scenes:
             self.__scene_i += 1
+            self.__scene = 'scene{0}'.format(self.__scene_i)
             return True
         else:
             return False

@@ -52,6 +52,12 @@ class GameGUI:
     def create_location_menu_connection(self):
         self.main_game_widget.location_list.itemClicked.connect(lambda: self.location_clicked())
 
+    def create_event_clicker_connection(self):
+        self.main_game_widget.left_click.connect(lambda: self.event_clicked())
+
+    def remove_left_click_connection(self):
+        self.main_game_widget.left_click.disconnect()
+
     # ------events----------------
     def new_game_clicked(self):
         self.show_character_creation()
@@ -78,6 +84,23 @@ class GameGUI:
         location = self.main_game_widget.location_list.currentItem().text()
         self.parse_setter("location", location)
         self.change_location()
+        # event management
+        if self.parse_getter("new_event"):  # check if new random event is available
+            print("starting event")
+            self.main_game_widget.location_list.clear()
+            self.start_event()
+            self.create_event_clicker_connection()
+
+    def event_clicked(self):
+        if self.parse_getter("text_advancement"):
+            self.set_event_text()
+        else:
+            if self.parse_getter("scene_advancement"):
+                self.set_event_image()
+                self.set_event_text()
+            else:
+                self.remove_left_click_connection()
+                self.change_location()
 
     # -------GUI modifiers----------
     def refresh_ui(self):
@@ -95,14 +118,34 @@ class GameGUI:
         print(location_array)
         self.main_game_widget.set_location(location, location_array)
 
+    def set_text(self, text):
+        self.main_game_widget.set_text(text)
+
+    def set_image(self, data):
+        if len(data) == 1:
+            self.main_game_widget.set_image(data[0])
+        else:
+            self.main_game_widget.set_web_image(data[0], data[1])
+
     # -------parsers-------------
     def parse_getter(self, argument):
         args = self.game.parser.parse_args(["get", argument])
         return args.func(argument)
 
-    def parse_setter(self, data_type, data):
+    def parse_setter(self, data_type, data=None):
         args = self.game.parser.parse_args(["set", data_type, data])
         args.func(data_type, data)
+
+    # -------event management----
+    def start_event(self):
+        self.set_event_image()
+        self.set_event_text()
+
+    def set_event_text(self):
+        self.set_text(self.parse_getter("event_text"))
+
+    def set_event_image(self):
+        self.set_image(self.parse_getter("event_image"))
 
     # ------main loop-----------
     def main_loop(self):

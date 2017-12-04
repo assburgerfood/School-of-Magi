@@ -2,7 +2,7 @@ import argparse
 
 from System import CharBase
 from System.EntityManager import LocationManager
-from System.EventSystem import EventLoader
+from System.EventSystem import EventLoader, EventHandler
 
 
 class MyGame:
@@ -18,7 +18,7 @@ class MyGame:
         self.location_data = LocationManager()
 
         event_data = EventLoader()
-        self.event_handler = EventLoader(event_data)
+        self.event_handler = EventHandler(event_data)
 
     def setup(self):
         print("choose new game, continue or exit")
@@ -35,10 +35,12 @@ class MyGame:
         self.set_stats_parser.add_argument('gold', type=int, help="sets initial gold")
 
         self.getter.add_argument('type', choices=['stats', 'base', 'name', 'sex',
-                                                  'location', 'location_list'])
+                                                  'location', 'location_list', 'new_event',
+                                                  'event_image', 'event_text', 'text_advancement',
+                                                  'scene_advancement'])
 
         self.setter.add_argument('type', choices=['location'])
-        self.setter.add_argument('data', help="data depending on the type")
+        self.setter.add_argument('data', help="data depending on the type", default=None)
 
         self.set_stats_parser.set_defaults(func=self.new_game)
         self.getter.set_defaults(func=self.get_data)
@@ -51,10 +53,11 @@ class MyGame:
                              new_stats["sex"], new_stats["name"], new_stats["age"])
         self.refill_hero_stats()
 
+    # ------periodical event methods------
     def refill_hero_stats(self):
         self.player.refill_stats()
 
-    # --------hero setters-----------
+    # --------SETTERS-----------
     def set_data(self, data_type, data):
         switcher = {
             'location': lambda: self.set_location(data)
@@ -66,15 +69,20 @@ class MyGame:
         print("active location set to: ", location)
         self.location_data.set_active_location(location)
 
-    # --------hero getters-----------
+    # --------GETTERS-----------
     def get_data(self, data_type):
         switcher = {
             'stats': lambda: self.get_hero_stats(),
             'base': lambda: self.get_hero_base(),
-            'name': lambda: self.hero_name(),
-            'sex': lambda: self.hero_sex(),
+            'name': lambda: self.get_hero_name(),
+            'sex': lambda: self.get_hero_sex(),
             'location': lambda: self.get_hero_location(),
-            'location_list': lambda: self.get_location_list()
+            'location_list': lambda: self.get_location_list(),
+            'new_event': lambda: self.get_random_event(),
+            'event_image': lambda: self.get_event_image(),
+            'event_text': lambda: self.get_event_text(),
+            'text_advancement': lambda: self.get_text_advancement(),
+            'scene_advancement': lambda: self.get_scene_advancement()
         }
         func = switcher.get(data_type, lambda: "nothing")
         return func()
@@ -86,14 +94,31 @@ class MyGame:
     def get_hero_base(self):
         return self.player.base
 
-    def hero_name(self):
+    def get_hero_name(self):
         return self.player.name
 
-    def hero_sex(self):
+    def get_hero_sex(self):
         return self.player.sex
 
+    # location getters
     def get_hero_location(self):
         return self.location_data.get_active_location()
 
     def get_location_list(self):
         return self.location_data.get_nearby_locations(self.get_hero_location())
+
+    # event getters
+    def get_event_image(self):
+        return self.event_handler.get_event_image()
+
+    def get_event_text(self):
+        return self.event_handler.get_event_text()
+
+    def get_text_advancement(self):
+        return self.event_handler.advance_text()
+
+    def get_scene_advancement(self):
+        return self.event_handler.advance_scene()
+
+    def get_random_event(self):
+        return self.event_handler.set_random_event(self.get_hero_location())

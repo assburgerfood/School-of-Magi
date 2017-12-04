@@ -26,3 +26,8 @@ class YanGET(pybooru.moebooru.Moebooru):
         url = self.posts[0]['file_url']
         print("Yande URL: ", url)
         return urllib.request.urlopen(url).read()
+
+
+if __name__ == '__main__':
+    yan = YanGET("ai", 10).picture()
+    print(yan)

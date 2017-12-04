@@ -100,7 +100,6 @@ class GameWindow(QWidget, gamewidget.Ui_main_game):
 
         self.resize_signal.connect(lambda: self.resize_image_area())
         self.right_click.connect(lambda: self.text_on_off())
-        self.left_click.connect(lambda: self.update_text())
 
     def raise_click_count(self):
         self.click_count += 1
@@ -202,6 +201,3 @@ class GameWindow(QWidget, gamewidget.Ui_main_game):
             self.text_browser.show()
         else:
             self.text_browser.hide()
-
-    def update_text(self):
-        self.raise_click_count()
