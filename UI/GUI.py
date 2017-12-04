@@ -1,6 +1,7 @@
 from PyQt5.QtCore import pyqtSignal
+from PyQt5.QtGui import QImage, QPixmap
 from PyQt5.QtWidgets import QMainWindow, QWidget
-from qtpy import QtCore
+from qtpy import QtCore, QtWidgets, QtGui
 
 from System import booruAPI
 from UI import basewindow, newgame, creation, gamewidget
@@ -39,9 +40,15 @@ class NewGameWidget(QWidget, newgame.Ui_new_game_form):
         self.btn_new_game.clicked.connect(func)
 
     def change_pixmap(self, tags, pages):
-        self.image = booruAPI.YanGET(tags, pages).picture()
-        self.background_image.setPixmap(self.image.scaled(self.size(), aspectRatioMode=1))
         print("Picture changed")
+        data = self.image_from_booru(tags, pages)
+        locale_image = QImage()
+        locale_image.loadFromData(data)
+        self.image = QPixmap(locale_image)
+        self.background_image.setPixmap(self.image.scaled(self.size(), aspectRatioMode=1))
+
+    def image_from_booru(self, tags, pages):
+        return booruAPI.YanGET(tags, pages).picture()
 
     def resizeEvent(self, event):
         self.resize_signal.emit()
@@ -77,6 +84,7 @@ class CharacterCreationWidget(QWidget, creation.Ui_Form):
             return "Futanari"
 
 
+# ---------MAIN GAME WIDGET-------------------------
 class GameWindow(QWidget, gamewidget.Ui_main_game):
     image = None
     resize_signal = pyqtSignal()
@@ -87,40 +95,86 @@ class GameWindow(QWidget, gamewidget.Ui_main_game):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
-        self.change_pixmap("anal", 20)
+        self.set_web_image("anal", 20)
         self.resize_image_area()
 
         self.resize_signal.connect(lambda: self.resize_image_area())
         self.right_click.connect(lambda: self.text_on_off())
         self.left_click.connect(lambda: self.update_text())
 
-    def resizeEvent(self, event):
-        self.resize_signal.emit()
-        return super().resizeEvent(event)
+    def raise_click_count(self):
+        self.click_count += 1
+        print("Clicks: ", self.click_count)
 
-    def resize_image_area(self):
-        width = self.main_widget.width()
-        height = self.main_widget.height()
-        textbox_height = 200
-        self.main_image.setGeometry(QtCore.QRect(0, 0, width, height))
-        self.text_browser.setGeometry(QtCore.QRect(0, (height - textbox_height), width, textbox_height))
-        self.resize_image()
+    def add_widget(self, widget):
+        self.main_widget.addWidget(widget)
 
-    def change_image(self, image):
-        self.image = image
-        self.resize_image()
+    @staticmethod
+    def image_from_booru(tags, pages):
+        return booruAPI.YanGET(tags, pages).picture()
 
-    def change_text(self, text):
-        self.text_browser.setText(text)
+    # ----------GUI updaters---------
+    def refresh_stats(self, health, mana, stamina, max_health, max_mana, max_stamina, refresh_max=True):
+        if refresh_max:
+            self.bar_health.setMaximum(max_health)
+            self.bar_mana.setMaximum(max_mana)
+            self.bar_stamina.setMaximum(max_stamina)
+
+        self.bar_health.setValue(health)
+        self.bar_mana.setValue(mana)
+        self.bar_stamina.setValue(stamina)
+
+    def refresh_gold(self, gold):
+        self.label_money.setText(str(gold) + " G")
 
     def resize_image(self):
         self.main_image.setPixmap(self.image.scaled(self.main_widget.size(), aspectRatioMode=1))
 
-    def text_on_off(self):
-        if self.text_browser.isHidden():
-            self.text_browser.show()
-        else:
-            self.text_browser.hide()
+    def update_event(self, image_location, text):
+        self.set_image(image_location)
+        self.text_browser.setText(text)
+
+    # -----------setters-------------
+    def set_hero_name(self, name):
+        self.label_name.setText(name)
+
+    def set_text(self, text):
+        self.text_browser.setText(text)
+
+    def set_image(self, image_location):
+        self.image = QtGui.QPixmap(image_location)
+        self.resize_image()
+
+    def set_web_image(self, tags, pages):
+        data = self.image_from_booru(tags, pages)
+        locale_image = QImage()
+        locale_image.loadFromData(data)
+        self.image = QPixmap(locale_image)
+        self.resize_image()
+
+    def set_location(self, location, location_array):
+        self.current_location.setText(location)
+        self.location_list.clear()
+        self.set_location_list(location_array)
+
+    def set_location_list(self, location_array):
+        i = 0
+        for location in location_array:
+            item = QtWidgets.QListWidgetItem()
+            font = QtGui.QFont()
+            font.setPointSize(14)
+            item.setFont(font)
+            self.location_list.addItem(item)
+
+            item = self.location_list.item(i)
+            item.setText(location)
+            i += 1
+
+    # -----------events--------------
+
+    def resizeEvent(self, event):
+        self.resize_signal.emit()
+        return super().resizeEvent(event)
 
     def mousePressEvent(self, event):
         in_image_area = event.pos().x() > self.character_frame.width() \
@@ -133,34 +187,21 @@ class GameWindow(QWidget, gamewidget.Ui_main_game):
             self.right_click.emit()
         return super().mousePressEvent(event)
 
+    # -----------lambda events-----------
+
+    def resize_image_area(self):
+        width = self.main_widget.width()
+        height = self.main_widget.height()
+        textbox_height = 200
+        self.main_image.setGeometry(QtCore.QRect(0, 0, width, height))
+        self.text_browser.setGeometry(QtCore.QRect(0, (height - textbox_height), width, textbox_height))
+        self.resize_image()
+
+    def text_on_off(self):
+        if self.text_browser.isHidden():
+            self.text_browser.show()
+        else:
+            self.text_browser.hide()
+
     def update_text(self):
-        # self.text_browser.setText(sys.argv[1])
         self.raise_click_count()
-
-    def raise_click_count(self):
-        self.click_count += 1
-        print("Clicks: ", self.click_count)
-
-    def add_widget(self, widget):
-        self.main_widget.addWidget(widget)
-
-    def refresh_stats(self, health, mana, stamina, max_health, max_mana, max_stamina, refresh_max=True):
-        if refresh_max:
-            self.bar_health.setMaximum(max_health)
-            self.bar_mana.setMaximum(max_mana)
-            self.bar_stamina.setMaximum(max_stamina)
-
-        self.bar_health.setValue(health)
-        self.bar_mana.setValue(mana)
-        self.bar_stamina.setValue(stamina)
-
-    def set_hero_name(self, name):
-        self.label_name.setText(name)
-
-    def refresh_gold(self, gold):
-        self.label_money.setText(str(gold) + " G")
-
-    def change_pixmap(self, tags, pages):
-        self.image = booruAPI.YanGET(tags, pages).picture()
-        self.main_image.setPixmap(self.image.scaled(self.main_widget.size(), aspectRatioMode=1))
-        print("Picture changed")

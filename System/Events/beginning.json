@@ -1,17 +1,23 @@
 {
-	"scene1": {
-		"picture": "System/Events/Pictures/Towns/City of Magi/city_of_magi.jpg",
-		"text": ["This is the magical world of Gaia.",
-				"Magic has been the central element of this world for millenia, but for some reason, more and more people are born without the power of Magi.",
-				"You are an orphan child and you have been able to survive alone thanks to a mysterious demon you once met.",
-				"The demon didn't give you the classical Magi's powers but actually made you a Succubus.",
-				"Because succuby are not allowed in Gaia, you have kept that part a secret.",
-				"Recently you met a teacher from the countries last magical school. He was quite amazed by the skills you had aquired on your own and gave you the oportunity to study for free.",
-				"For that you have travelled to the City of Magi. One of the few cities that somewhat tolerates magic users."]
-	},
-	"scene2": {
-		"picture": "System/Events/Pictures/School/School of Magi/building_front.jpg",
-		"text": ["Here also stands the School of Magi.",
-				"This is your first schoolday."]
-	}
+  "time": "None",
+  "probability": 0,
+  "scene1": {
+    "picture": "System/Events/Pictures/Towns/City of Magi/city_of_magi.jpg",
+    "text": [
+      "This is the magical world of Gaia.",
+      "Magic has been the central element of this world for millenia, but for some reason, more and more people are born without the power of Magi.",
+      "You are an orphan child and you have been able to survive alone thanks to a mysterious demon you once met.",
+      "The demon didn't give you the classical Magi's powers but actually made you a Succubus.",
+      "Because succuby are not allowed in Gaia, you have kept that part a secret.",
+      "Recently you met a teacher from the countries last magical school. He was quite amazed by the skills you had aquired on your own and gave you the oportunity to study for free.",
+      "For that you have travelled to the City of Magi. One of the few cities that somewhat tolerates magic users."
+    ]
+  },
+  "scene2": {
+    "picture": "System/Events/Pictures/School/School of Magi/building_front.jpg",
+    "text": [
+      "Here also stands the School of Magi.",
+      "This is your first schoolday."
+    ]
+  }
 }

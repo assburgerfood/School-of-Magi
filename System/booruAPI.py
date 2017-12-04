@@ -2,7 +2,6 @@ import random
 import urllib.request
 
 import pybooru
-from PyQt5.QtGui import QImage, QPixmap
 from pybooru import Danbooru
 from pybooru import Moebooru
 
@@ -26,7 +25,4 @@ class YanGET(pybooru.moebooru.Moebooru):
     def picture(self):
         url = self.posts[0]['file_url']
         print("Yande URL: ", url)
-        data = urllib.request.urlopen(url).read()
-        image = QImage()
-        image.loadFromData(data)
-        return QPixmap(image)
+        return urllib.request.urlopen(url).read()
