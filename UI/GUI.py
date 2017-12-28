@@ -4,7 +4,7 @@ from PyQt5.QtWidgets import QMainWindow, QWidget
 from qtpy import QtCore, QtWidgets, QtGui
 
 from System import booruAPI
-from UI import basewindow, newgame, creation, gamewidget
+from UI import basewindow, newgame, creation, gamewidget, options_popup
 
 
 class MainWindow(QMainWindow, basewindow.Ui_MainWindow):
@@ -48,7 +48,7 @@ class NewGameWidget(QWidget, newgame.Ui_new_game_form):
         self.background_image.setPixmap(self.image.scaled(self.size(), aspectRatioMode=1))
 
     def image_from_booru(self, tags, pages):
-        return booruAPI.YanGET(tags, pages).picture()
+        return booruAPI.MoeGET(tags, pages, 'yandere').picture()
 
     def resizeEvent(self, event):
         self.resize_signal.emit()
@@ -95,7 +95,7 @@ class GameWindow(QWidget, gamewidget.Ui_main_game):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setupUi(self)
-        self.set_web_image("anal", 20)
+        self.set_image('System/Pictures/Locations/city_of_magi_out.jpg')
         self.resize_image_area()
 
         self.resize_signal.connect(lambda: self.resize_image_area())
@@ -110,7 +110,7 @@ class GameWindow(QWidget, gamewidget.Ui_main_game):
 
     @staticmethod
     def image_from_booru(tags, pages):
-        return booruAPI.YanGET(tags, pages).picture()
+        return booruAPI.MoeGET(tags, pages, 'yandere').picture()
 
     # ----------GUI updaters---------
     def refresh_stats(self, health, mana, stamina, max_health, max_mana, max_stamina, refresh_max=True):
@@ -124,7 +124,10 @@ class GameWindow(QWidget, gamewidget.Ui_main_game):
         self.bar_stamina.setValue(stamina)
 
     def refresh_gold(self, gold):
-        self.label_money.setText(str(gold) + " G")
+        self.label_money.setText("Money: " + str(gold) + " G")
+
+    def refresh_time(self, time):
+        self.label_time.setText("Time: " + time)
 
     def resize_image(self):
         self.main_image.setPixmap(self.image.scaled(self.main_widget.size(), aspectRatioMode=1))
@@ -135,7 +138,7 @@ class GameWindow(QWidget, gamewidget.Ui_main_game):
 
     # -----------setters-------------
     def set_hero_name(self, name):
-        self.label_name.setText(name)
+        self.label_name.setText("Name: " + name)
 
     def set_text(self, text):
         self.text_browser.setText(text)
@@ -151,10 +154,14 @@ class GameWindow(QWidget, gamewidget.Ui_main_game):
         self.image = QPixmap(locale_image)
         self.resize_image()
 
-    def set_location(self, location, location_array):
+    def set_location(self, location, location_array, location_image):
+        print("setting location in main game widget")
         self.current_location.setText(location)
         self.location_list.clear()
         self.set_location_list(location_array)
+        self.set_image(location_image)
+        self.text_browser.clear()
+        print("end of widget set location")
 
     def set_location_list(self, location_array):
         i = 0
@@ -201,3 +208,36 @@ class GameWindow(QWidget, gamewidget.Ui_main_game):
             self.text_browser.show()
         else:
             self.text_browser.hide()
+
+
+class OptionsWidget(QWidget, options_popup.Ui_popup_widget):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setupUi(self)
+
+    def setup(self, question, option_array):
+        self.set_question(question)
+        self.add_options(option_array)
+        self.show()
+
+    def remove(self):
+        self.option_list.clear()
+        self.close()
+
+    def set_question(self, question):
+        self.label_option.setText(question)
+
+    def add_options(self, option_array):
+        self.option_list.clear()
+        i = 0
+        for option in option_array:
+            item = QtWidgets.QListWidgetItem()
+            item.setTextAlignment(QtCore.Qt.AlignCenter)
+            font = QtGui.QFont()
+            font.setPointSize(14)
+            item.setFont(font)
+            self.option_list.addItem(item)
+
+            item = self.option_list.item(i)
+            item.setText(option[0])
+            i += 1

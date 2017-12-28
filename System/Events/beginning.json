@@ -1,8 +1,7 @@
 {
-  "time": "None",
   "probability": 0,
   "scene1": {
-    "picture": "System/Events/Pictures/Towns/City of Magi/city_of_magi.jpg",
+    "picture": "Locations/som_building_front.jpg",
     "text": [
       "This is the magical world of Gaia.",
       "Magic has been the central element of this world for millenia, but for some reason, more and more people are born without the power of Magi.",
@@ -14,7 +13,7 @@
     ]
   },
   "scene2": {
-    "picture": "System/Events/Pictures/School/School of Magi/building_front.jpg",
+    "picture": "Locations/som_building_front.jpg",
     "text": [
       "Here also stands the School of Magi.",
       "This is your first schoolday."

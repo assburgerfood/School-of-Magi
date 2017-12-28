@@ -1,7 +1,7 @@
 from PyQt5.QtWidgets import QApplication
 
 from System import GameCore
-from UI.GUI import MainWindow, NewGameWidget, CharacterCreationWidget, GameWindow
+from UI.GUI import MainWindow, NewGameWidget, CharacterCreationWidget, GameWindow, OptionsWidget
 
 
 class GameGUI:
@@ -15,13 +15,13 @@ class GameGUI:
         self.startup_widget = NewGameWidget()  # startup widget
         self.creation_widget = CharacterCreationWidget()  # character creation widget
         self.main_game_widget = GameWindow()  # main game widget
+        self.options_widget = None
 
         # start and populate the Ui_Game stuff
         self.widget_setup()
 
         # -----event connection creation------
         self.startup_event_connections()
-
 
         # add new game widget
 
@@ -51,6 +51,9 @@ class GameGUI:
 
     def create_location_menu_connection(self):
         self.main_game_widget.location_list.itemClicked.connect(lambda: self.location_clicked())
+
+    def create_option_list_connection(self):
+        self.options_widget.option_list.itemClicked.connect(lambda: self.option_clicked())
 
     def create_event_clicker_connection(self):
         self.main_game_widget.left_click.connect(lambda: self.event_clicked())
@@ -86,37 +89,65 @@ class GameGUI:
         self.change_location()
         # event management
         if self.parse_getter("new_event"):  # check if new random event is available
-            print("starting event")
+            print("\nSTARTING RANDOM EVENT")
             self.main_game_widget.location_list.clear()
-            self.start_event()
+            self.update_event_in_gui()
             self.create_event_clicker_connection()
+
+    def option_clicked(self):
+        choice = self.options_widget.option_list.currentItem().text()
+        option = self.parse_getter("event_option")[1]
+        scene = [o for o in option if choice == o[0]][0][1]
+        self.parse_setter("event_scene", scene)
+        if scene != "end":
+            location = self.parse_getter("event_location")
+            if location:
+                self.parse_setter("location", location)
+            self.update_event_in_gui()
+        else:
+            self.change_location()
+            self.remove_left_click_connection()
+        self.options_widget.remove()
 
     def event_clicked(self):
         if self.parse_getter("text_advancement"):
             self.set_event_text()
         else:
-            if self.parse_getter("scene_advancement"):
-                self.set_event_image()
-                self.set_event_text()
+            option = self.parse_getter("event_option")
+            if option:
+                self.options_widget = OptionsWidget()
+                self.options_widget.setup(option[0], option[1])
+                self.create_option_list_connection()
+            elif self.parse_getter("scene_advancement"):
+                self.update_event_in_gui()
             else:
+                event_id = self.parse_getter('event_id')
+                print(event_id)
+                self.parse_saver('completed_event', event_id)
                 self.remove_left_click_connection()
                 self.change_location()
 
     # -------GUI modifiers----------
+
     def refresh_ui(self):
         stats = self.parse_getter("stats")
         base = self.parse_getter("base")
+        time = self.parse_getter("time")
 
         self.main_game_widget.refresh_stats(stats['health'], stats['mana'], stats['stamina'],
                                             base['health'], base['mana'], base['stamina'])
         self.main_game_widget.refresh_gold(stats['gold'])
+        self.main_game_widget.refresh_time(time)
 
     def change_location(self):
-        print("changing location")
+        print("\nCHANGING LOCATION")
         location = self.parse_getter("location")
+        print("location get: ", location)
         location_array = self.parse_getter("location_list")
-        print(location_array)
-        self.main_game_widget.set_location(location, location_array)
+        print("array: ", location_array)
+        location_image = self.parse_getter("location_image")
+        print("image: ", location_image)
+        self.main_game_widget.set_location(location, location_array, location_image)
 
     def set_text(self, text):
         self.main_game_widget.set_text(text)
@@ -136,8 +167,12 @@ class GameGUI:
         args = self.game.parser.parse_args(["set", data_type, data])
         args.func(data_type, data)
 
+    def parse_saver(self, data_type, data=None):
+        args = self.game.parser.parse_args(["save", data_type, data])
+        args.func(data_type, data)
+
     # -------event management----
-    def start_event(self):
+    def update_event_in_gui(self):
         self.set_event_image()
         self.set_event_text()
 

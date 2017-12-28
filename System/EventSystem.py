@@ -2,8 +2,7 @@ import glob
 import json
 import os
 import random
-
-from qtpy import QtGui
+from pprint import pprint
 
 
 class EventDataReader:
@@ -28,39 +27,96 @@ class EventLoader:
     def __init__(self, location="System/Events", scarcity=2):
 
         self.__weight_list = {}
-        self.__weight_sum = 0
         self.__scarcity = scarcity
 
         self.__events = EventDataReader(location).get_entity_data()
         self.generate_weights()
+        self.setup()
+        # pprint(self.__events)
+        # pprint(self.__weight_list)
+
+    def setup(self):
+        for event_name, event in self.__events.items():
+            event['id'] = event_name
 
     def generate_weights(self):
         for event_name, event in self.__events.items():
             if event['probability'] != 0:
                 self.__weight_list.setdefault(event['location'], {})
-                self.__weight_list[event['location']].setdefault('sum', 0)
-                self.__weight_list[event['location']]['sum'] += event['probability']
-                self.__weight_list[event['location']].setdefault('event_weight', []).append(
-                    (event_name, event['probability']))
+                if 'requirements' in event:
+                    self.__weight_list[event['location']].setdefault('event_weight', []).append(
+                        (event_name, event['probability'], event['requirements']))
+                else:
+                    self.__weight_list[event['location']].setdefault('event_weight', []).append(
+                        (event_name, event['probability']))
+
+    def get_sum(self, event_list):
+        local_sum = 0
+        local_event_list = event_list
+        for event in local_event_list:
+            local_sum += event[1]
+        return local_sum
+
+    def get_reduced_weight_events(self, location, hour, completed_events, stats_dict):
+        new_event_list = []
+        for event in self.__weight_list[location]['event_weight']:
+            if len(event) == 2:
+                new_event_list.append(event)
+            else:
+                req = event[2]
+                if self.requirement_checker('time', req, hour) and \
+                        self.requirement_checker('completed_events', req, completed_events) and not \
+                        self.requirement_checker('!completed_events', req, completed_events) and \
+                        self.requirement_checker('stats', req, stats_dict):
+                    new_event_list.append((event[0], event[1]))
+        return new_event_list
+
+    def requirement_checker(self, value, requirements, comparison):
+        if value not in requirements:
+            return True
+        switcher = {
+            'completed_events': lambda: set(requirements[value]).issubset(set(comparison)),
+            '!completed_events': lambda: set(requirements[value]).issubset(set(comparison)),
+            'time': lambda: requirements[value][0] <= comparison <= requirements[value][1],
+            'stats': lambda: self.dict_comparison(requirements[value], comparison)
+        }
+        func = switcher.get(value, lambda: "nothing")
+        return func()
+
+    def dict_comparison(self, required_stats, comparison):
+        for key, value in required_stats.items():
+            if value[0] == '>':
+                if comparison[key] < int(value[1:]):
+                    return False
+                else:
+                    return True
+            elif value[0] == '<':
+                if comparison[key] > int(value[1:]):
+                    return False
+                else:
+                    return True
+            else:
+                print("Error in 'dict_comparison'")
+                return False
 
     def get_event(self, event):
         return self.__events[event]
 
-    def get_random_event(self, location):
-        local_sum = self.__weight_list[location]['sum']
+    def get_random_event(self, location, hour=13, completed_events=None, stats_dict=None):
+        if stats_dict is None:
+            stats_dict = {}
+        if completed_events is None:
+            completed_events = []
+        local_event_list = self.get_reduced_weight_events(location, hour, completed_events, stats_dict)
+        pprint(local_event_list)
+        local_sum = self.get_sum(local_event_list)
         r = random.randrange(self.__scarcity * local_sum)
         total_int = 0
-        for event_weight in self.__weight_list[location]['event_weight']:
-            total_int += event_weight[1]
+        for event in local_event_list:
+            total_int += event[1]
             if total_int > r:
-                return event_weight[0]
+                return event[0]
         return None
-
-    # sets events picture from file
-    def event_picture(self, scene):
-        pic_location = self.event_data["scene" + str(scene)]["picture"]
-        print("Picture file: ", pic_location)
-        self.__picture = QtGui.QPixmap(pic_location)
 
 
 class EventHandler:
@@ -75,10 +131,20 @@ class EventHandler:
         self.__scenes = 0
         self.__scene = ''
 
-    def set_random_event(self, location):
+    def clear_event(self):
+        self.__current_event = None
+
+        self.__scene_i = 1
+        self.__text_i = 0
+
+        self.__scenes = 0
+        self.__scene = ''
+
+    def set_random_event(self, location, hour, completed_events=None, stats_dict=None):
         try:
-            event_name = self.event_data.get_random_event(location)
+            event_name = self.event_data.get_random_event(location, hour, completed_events, stats_dict)
         except KeyError:
+            print("KeyError in 'EventSystem.set_random_event()")
             return False
         if event_name:
             self.__current_event = self.event_data.get_event(event_name)
@@ -96,31 +162,45 @@ class EventHandler:
         except IndexError:
             return None
 
-    def get_event_image(self):
+    def get_new_location(self):
         try:
-            if 'tags' in self.__current_event[self.__scene]:
-                return [self.__current_event[self.__scene]['tags'], self.__current_event[self.__scene]['pages']]
+            if 'new_location' in self.__current_event[self.__scene]:
+                return self.__current_event[self.__scene]['new_location']
             else:
-                return [self.__current_event[self.__scene]['picture']]
+                return None
         except KeyError:
             return None
 
-    def advance_event(self):
-        if len(self.__current_event[self.__scene]['text']) < self.__text_i:
-            self.__text_i += 1
-            return True
-        elif self.__scenes <= self.__scene_i:
-            self.__text_i = 0
-            self.__scene_i += 1
-            self.__scene = 'scene{0}'.format(self.__scene_i)
-            return True
+    def get_event_image(self):
+        try:
+            if 'tags' in self.__current_event[self.__scene]:
+                return [self.__current_event[self.__scene]['tags'],
+                        self.__current_event[self.__scene]['pages']]
+            else:
+                return ['System/Pictures/' + self.__current_event[self.__scene]['picture']]
+        except KeyError:
+            return None
+
+    def get_event_option(self):
+        try:
+            if 'option' in self.__current_event[self.__scene]:
+                return self.__current_event[self.__scene]['option']['text'], \
+                       self.__current_event[self.__scene]['option']['options']
+            else:
+                return None
+        except KeyError:
+            return None
+
+    def set_scene(self, scene):
+        if scene == 'end':
+            self.clear_event()
         else:
-            return False
+            self.__text_i = 0
+            self.__scene = scene
+            self.__scene_i = int(scene[-1])
 
     def advance_text(self):
-        print("advancing text")
         if self.__text_i < len(self.__current_event[self.__scene]['text']) - 1:
-            print("advancing text2")
             self.__text_i += 1
             return True
         else:
@@ -135,10 +215,16 @@ class EventHandler:
         else:
             return False
 
+    def get_event_name(self):
+        return self.__current_event['id']
+
 
 def main():
     event_handler = EventHandler(EventLoader('Events'))
-    if event_handler.set_random_event("School of Magi"):
+    if event_handler.set_random_event("School of Magi", hour=13,
+                                      completed_events=["school_mastur"],
+                                      stats_dict={'health': 5, 'mana': 5, 'strength': 5, 'magic': 5, 'gold': 100,
+                                                  'stamina': 10, 'age': 14}):
         print(event_handler.get_event_text())
         print(event_handler.get_event_image())
         if event_handler.advance_text():

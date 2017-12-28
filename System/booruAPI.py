@@ -1,12 +1,11 @@
 import random
 import urllib.request
 
-import pybooru
 from pybooru import Danbooru
 from pybooru import Moebooru
 
 
-class DanGET(pybooru.danbooru.Danbooru):
+class DanGET:
     def __init__(self, _tags):
         client = Danbooru('danbooru')
         self.posts = client.post_list(limit=1, tags=_tags)
@@ -16,10 +15,11 @@ class DanGET(pybooru.danbooru.Danbooru):
             return post['file_url']
 
 
-class YanGET(pybooru.moebooru.Moebooru):
-    def __init__(self, _tags, _pages):
+class MoeGET:
+    def __init__(self, _tags, _pages, _booru):
         r = random.randint(1, 40 * _pages)
-        client = Moebooru('yandere')
+        client = Moebooru(_booru)
+        print(_tags, _pages)
         self.posts = client.post_list(limit=1, tags=_tags, page=r)
 
     def picture(self):
@@ -29,5 +29,5 @@ class YanGET(pybooru.moebooru.Moebooru):
 
 
 if __name__ == '__main__':
-    yan = YanGET("ai", 10).picture()
+    yan = MoeGET("ai", 10, 'yandere').picture()
     print(yan)

@@ -13,3 +13,6 @@ class Hero(EntityTypes.CreatureFramework):
     def refill_stats(self):
         for k, v in self.base.items():
             self.stats[k] = v
+
+    def get_stats_dict(self):
+        return self.stats
